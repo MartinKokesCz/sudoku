@@ -27,7 +27,7 @@ function isError(r, c) {
   <!-- Use CSS Grid for robust 9x9 layout -->
   <!-- We use inline style for grid-template-rows to ensure 9 equal rows, as grid-rows-9 is not always standard utility -->
   <div 
-    class="grid grid-cols-9 border-4 border-text-secondary bg-bg-primary rounded w-full max-w-[500px]"
+    class="grid grid-cols-9 rounded-lg overflow-hidden border border-white/10 shadow-inner"
     style="aspect-ratio: 1 / 1; grid-template-rows: repeat(9, minmax(0, 1fr));"
   >
     <template v-for="(row, rIndex) in board" :key="rIndex">
