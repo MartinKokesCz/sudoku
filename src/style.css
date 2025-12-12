@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@theme {
+    --color-bg-primary: #0f172a;
+    --color-bg-secondary: #1e293b;
+    --color-text-primary: #f8fafc;
+    --color-text-secondary: #94a3b8;
+    --color-accent: #06b6d4;
+    --color-success: #22c55e;
+    --color-error: #ef4444;
+    --color-warning: #eab308;
+
+    --font-sans: "Inter", system-ui, sans-serif;
+
+    --shadow-neon: 0 0 10px rgba(6, 182, 212, 0.5);
+    --shadow-neon-strong: 0 0 20px rgba(6, 182, 212, 0.8);
+}
+
+/* Custom Utilities if needed, or just overrides */
+
+html,
+body {
+    @apply bg-bg-primary text-text-primary antialiased min-h-screen flex items-center justify-center overflow-x-hidden;
+}
+
+#app {
+    @apply w-full max-w-7xl mx-auto p-8 text-center min-h-screen flex flex-col justify-center items-center;
+}
+
+/* Ensure no default focus outline on buttons if they have custom styles */
+button:focus-visible {
+    @apply outline-none ring-2 ring-accent;
+}
