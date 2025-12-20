@@ -1,27 +1,41 @@
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
 import SudokuBoard from './components/SudokuBoard.vue';
 import ConfirmationModal from './components/ConfirmationModal.vue';
 import NameInputModal from './components/NameInputModal.vue';
-import { generateNewGame, isValidMove, solveSudoku, BLANK } from './utils/sudoku.js';
+import { generateNewGame, BLANK } from './utils/sudoku';
+import type { SudokuBoard as SudokuBoardType } from './utils/sudoku';
+
+// Types
+type Difficulty = 'easy' | 'medium' | 'hard';
+interface BestTime {
+    time: number;
+    name?: string;
+}
+interface BestTimes {
+    easy: BestTime | null;
+    medium: BestTime | null;
+    hard: BestTime | null;
+    [key: string]: BestTime | null;
+}
 
 // State
-const currentView = ref('menu'); // 'menu' | 'game'
-const difficulty = ref('easy');
-const board = ref([]);
-const initialBoard = ref([]);
-const solution = ref([]);
-const selectedCell = ref(null);
-const errorCells = ref([]);
+const currentView = ref<'menu' | 'game'>('menu');
+const difficulty = ref<Difficulty>('easy');
+const board = ref<SudokuBoardType>([]);
+const initialBoard = ref<SudokuBoardType>([]);
+const solution = ref<SudokuBoardType>([]);
+const selectedCell = ref<{ row: number, col: number } | null>(null);
+const errorCells = ref<{ row: number, col: number }[]>([]);
 const loading = ref(false);
 const gameWon = ref(false);
 const showExitModal = ref(false);
 const showNameModal = ref(false);
 const timer = ref(0);
-const bestTimes = ref({ easy: null, medium: null, hard: null }); // Now stores objects: { time: 120, name: 'Martin' } or just { time: 120 } for legacy
+const bestTimes = ref<BestTimes>({ easy: null, medium: null, hard: null });
 const currentPlayerName = ref('');
-const pendingDifficulty = ref('');
-let timerInterval = null;
+const pendingDifficulty = ref<Difficulty | ''>('');
+let timerInterval: ReturnType<typeof setInterval> | null = null;
 
 // Initialize
 onMounted(() => {
@@ -32,7 +46,7 @@ onMounted(() => {
   }
 });
 
-function formatTime(seconds) {
+function formatTime(seconds: number) {
   const m = Math.floor(seconds / 60).toString().padStart(2, '0');
   const s = (seconds % 60).toString().padStart(2, '0');
   return `${m}:${s}`;
@@ -58,24 +72,26 @@ function saveBestTime() {
     const current = timer.value;
     // Check if new record
     const currentRecord = bestTimes.value[diff];
-    const bestTime = currentRecord ? currentRecord.time : Infinity;
+    const bestTimeValue = currentRecord ? currentRecord.time : Infinity;
     
-    if (current < bestTime) {
+    if (current < bestTimeValue) {
         bestTimes.value[diff] = { time: current, name: currentPlayerName.value };
         localStorage.setItem('sudoku_best_times', JSON.stringify(bestTimes.value));
     }
 }
 
 // Actions
-function initiateGameStart(diff) {
+function initiateGameStart(diff: Difficulty) {
     pendingDifficulty.value = diff;
     showNameModal.value = true;
 }
 
-function handleNameConfirm(name) {
+function handleNameConfirm(name: string) {
     currentPlayerName.value = name;
     showNameModal.value = false;
-    startGame(pendingDifficulty.value);
+    if (pendingDifficulty.value) {
+        startGame(pendingDifficulty.value);
+    }
 }
 
 function cancelNameInput() {
@@ -83,7 +99,7 @@ function cancelNameInput() {
     pendingDifficulty.value = '';
 }
 
-function startGame(diff) {
+function startGame(diff: Difficulty) {
   difficulty.value = diff;
   currentView.value = 'game';
   loading.value = true;
@@ -119,23 +135,20 @@ function confirmExit() {
 
 function cancelExit() {
     showExitModal.value = false;
-    // Resume timer if needed, but simple setInterval works for now even if running in bg
-    // For strictness we could re-enable interval here if we paused it above.
-    // Let's assume backToMenu doesn't fully STOP it, just 'pauses' conceptually? 
-    // user likely wants it to keep ticking or pause. Let's keep it ticking for simplicity or restart if paused.
-    // Actually, let's NOT stop it in backToMenu to imply the game is still live behind modal.
 }
 
-function handleCellSelect(coords) {
+function handleCellSelect(coords: { row: number, col: number }) {
   selectedCell.value = coords;
 }
 
-function handleInput(num) {
+function handleInput(num: number) {
   if (!selectedCell.value || gameWon.value) return;
   const { row, col } = selectedCell.value;
-  if (initialBoard.value[row][col] !== BLANK) return;
-  board.value[row][col] = num;
-  checkWin();
+  if (initialBoard.value[row] && initialBoard.value[row][col] !== BLANK) return;
+  if (board.value[row]) {
+    board.value[row][col] = num;
+    checkWin();
+  }
 }
 
 function isBoardFull() {
@@ -147,8 +160,14 @@ function checkWin() {
   if (isBoardFull()) {
      let correct = true;
      for(let r=0; r<9; r++) {
+         const row = board.value[r];
+         const solRow = solution.value[r];
+         if (!row || !solRow) {
+             correct = false;
+             break;
+         }
          for(let c=0; c<9; c++) {
-             if (board.value[r][c] !== solution.value[r][c]) correct = false;
+             if (row[c] !== solRow[c]) correct = false;
          }
      }
      if (correct) {
@@ -159,7 +178,7 @@ function checkWin() {
   }
 }
 
-function handleKeydown(e) {
+function handleKeydown(e: KeyboardEvent) {
   if (currentView.value !== 'game' || gameWon.value) return;
   if (e.key >= '1' && e.key <= '9') handleInput(parseInt(e.key));
   if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') handleInput(0);
@@ -171,16 +190,11 @@ function handleKeydown(e) {
   if (e.key === 'ArrowRight') selectedCell.value = { row, col: Math.min(8, col + 1) };
 }
 
-onMounted(() => {
-  window.addEventListener('keydown', handleKeydown);
-});
-
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown);
 });
 
 // Tailwind Classes
-const headerClass = "fixed top-8 w-full text-center pointer-events-none z-20 hidden lg:block";
 const victoryBadgeClass = "absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 -rotate-6 bg-success/90 backdrop-blur text-white text-4xl font-extrabold py-4 px-12 rounded-xl shadow-glass animate-bounce z-50 border border-white/30";
 
 </script>
@@ -212,14 +226,14 @@ const victoryBadgeClass = "absolute top-1/2 left-1/2 transform -translate-x-1/2 
         <div class="glass-panel flex-1 p-8 rounded-2xl flex flex-col gap-4">
              <h3 class="text-accent uppercase tracking-widest text-sm font-semibold mb-2">Best Brews</h3>
              <div class="flex flex-col gap-3">
-                 <div class="flex justify-between items-center px-4 py-3 rounded-lg bg-white/5 border border-white/5" v-for="diff in ['easy', 'medium', 'hard']" :key="'score-'+diff">
+                 <div class="flex justify-between items-center px-4 py-3 rounded-lg bg-white/5 border border-white/5" v-for="diff in (['easy', 'medium', 'hard'] as const)" :key="'score-'+diff">
                      <span class="uppercase text-xs tracking-wider font-bold text-text-secondary w-16">{{ diff }}</span>
                      <div class="flex flex-col items-end">
                          <span class="font-mono text-lg text-white font-bold leading-none">
-                            {{ bestTimes[diff] ? formatTime(bestTimes[diff].time || bestTimes[diff]) : '--:--' }}
+                            {{ bestTimes[diff] ? formatTime(typeof bestTimes[diff] === 'number' ? (bestTimes[diff] as any) : bestTimes[diff]!.time) : '--:--' }}
                          </span>
-                         <span v-if="bestTimes[diff] && bestTimes[diff].name" class="text-xs text-accent mt-1">
-                             {{ bestTimes[diff].name }}
+                         <span v-if="bestTimes[diff] && typeof bestTimes[diff] === 'object' && bestTimes[diff]!.name" class="text-xs text-accent mt-1">
+                             {{ bestTimes[diff]!.name }}
                          </span>
                      </div>
                  </div>
@@ -231,7 +245,7 @@ const victoryBadgeClass = "absolute top-1/2 left-1/2 transform -translate-x-1/2 
             <h2 class="text-accent uppercase tracking-widest text-sm font-semibold mb-2">Select Blend</h2>
             <div class="flex flex-col gap-3">
                 <button 
-                   v-for="diff in ['easy', 'medium', 'hard']"
+                   v-for="diff in (['easy', 'medium', 'hard'] as const)"
                    :key="diff"
                    class="w-full py-4 glass-button rounded-xl text-xl font-bold uppercase transition-all shadow-md group border-l-4 border-transparent hover:border-accent"
                    @click="initiateGameStart(diff)"
@@ -289,7 +303,7 @@ const victoryBadgeClass = "absolute top-1/2 left-1/2 transform -translate-x-1/2 
   </main>
 </template>
 
-<style>
+<style lang="scss">
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }

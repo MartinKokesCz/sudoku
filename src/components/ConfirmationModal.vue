@@ -1,13 +1,16 @@
-<script setup>
-defineProps({
-  isOpen: Boolean,
-  title: { type: String, default: 'Confirm' },
-  message: { type: String, default: 'Are you sure?' },
-  confirmText: { type: String, default: 'Yes' },
-  cancelText: { type: String, default: 'Cancel' }
-});
+<script setup lang="ts">
+defineProps<{
+  isOpen: boolean;
+  title?: string;
+  message?: string;
+  confirmText?: string;
+  cancelText?: string;
+}>();
 
-const emit = defineEmits(['confirm', 'cancel']);
+const emit = defineEmits<{
+  (e: 'confirm'): void;
+  (e: 'cancel'): void;
+}>();
 </script>
 
 <template>

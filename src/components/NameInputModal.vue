@@ -1,15 +1,18 @@
-<script setup>
+<script setup lang="ts">
 import { ref, watch } from 'vue';
 
-const props = defineProps({
-  isOpen: Boolean,
-  difficulty: String
-});
+const props = defineProps<{
+  isOpen: boolean;
+  difficulty: string;
+}>();
 
-const emit = defineEmits(['confirm', 'cancel']);
+const emit = defineEmits<{
+  (e: 'confirm', name: string): void;
+  (e: 'cancel'): void;
+}>();
 
 const playerName = ref('');
-const inputRef = ref(null);
+const inputRef = ref<HTMLInputElement | null>(null);
 
 watch(() => props.isOpen, (newVal) => {
     if (newVal) {

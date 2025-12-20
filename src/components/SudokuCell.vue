@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
 
 const props = defineProps({
@@ -7,11 +7,13 @@ const props = defineProps({
   active: { type: Boolean, default: false },
   highlight: { type: Boolean, default: false },
   error: { type: Boolean, default: false },
-  rowIndex: Number,
-  colIndex: Number
+  rowIndex: { type: Number, required: true },
+  colIndex: { type: Number, required: true }
 });
 
-const emit = defineEmits(['select']);
+const emit = defineEmits<{
+  (e: 'select', coords: { row: number, col: number }): void
+}>();
 
 function handleClick() {
   emit('select', { row: props.rowIndex, col: props.colIndex });

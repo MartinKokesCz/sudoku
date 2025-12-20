@@ -1,24 +1,28 @@
-<script setup>
+<script setup lang="ts">
 import SudokuCell from './SudokuCell.vue';
+import type { SudokuBoard } from '../utils/sudoku';
 
 const props = defineProps({
-  board: { type: Array, required: true },
-  initialBoard: { type: Array, required: true },
-  selectedCell: { type: Object, default: null },
-  errorCells: { type: Array, default: () => [] }
+  board: { type: Array as () => SudokuBoard, required: true },
+  initialBoard: { type: Array as () => SudokuBoard, required: true },
+  selectedCell: { type: Object as () => { row: number, col: number } | null, default: null },
+  errorCells: { type: Array as () => { row: number, col: number }[], default: () => [] }
 });
 
-const emit = defineEmits(['cell-select']);
+const emit = defineEmits<{
+  (e: 'cell-select', coords: { row: number, col: number }): void
+}>();
 
-function isSelected(r, c) {
-  return props.selectedCell && props.selectedCell.row === r && props.selectedCell.col === c;
+function isSelected(r: number, c: number) {
+  return !!(props.selectedCell && props.selectedCell.row === r && props.selectedCell.col === c);
 }
 
-function isInitial(r, c) {
-  return props.initialBoard[r][c] !== 0;
+function isInitial(r: number, c: number) {
+  const row = props.initialBoard[r];
+  return row && row[c] !== 0;
 }
 
-function isError(r, c) {
+function isError(r: number, c: number) {
     return props.errorCells.some(e => e.row === r && e.col === c);
 }
 </script>
@@ -40,7 +44,7 @@ function isError(r, c) {
         :initial="isInitial(rIndex, cIndex)"
         :active="isSelected(rIndex, cIndex)"
         :error="isError(rIndex, cIndex)"
-        @select="(coords) => emit('cell-select', coords)"
+        @select="(coords: { row: number, col: number }) => emit('cell-select', coords)"
       />
     </template>
   </div>

@@ -1,31 +1,5 @@
-@import "tailwindcss";
-
-@theme {
-    /* Coffee Shop Palette */
-    --color-bg-primary: #2a201c;
-    /* Dark Coffee Bean */
-    --color-bg-secondary: #4a3b32;
-    /* Lighter Roast */
-
-    --color-text-primary: #fff8e1;
-    /* Milk Foam / Cream */
-    --color-text-secondary: #d7ccc8;
-    /* Beige */
-
-    --color-accent: #d4a373;
-    /* Caramel / Latte Art */
-    --color-accent-hover: #faedcd;
-
-    --color-success: #a3b18a;
-    /* Matcha / Sage (Soft Green) */
-    --color-error: #bc6c25;
-    /* Burnt Orange */
-
-    --font-sans: "Outfit", "Inter", system-ui, sans-serif;
-    /* Rounded, friendly font */
-
-    --shadow-glass: 0 4px 30px rgba(0, 0, 0, 0.1);
-}
+@use "theme.css";
+@use "tailwindcss";
 
 /* Glassmorphism Utilities */
 .glass-panel {

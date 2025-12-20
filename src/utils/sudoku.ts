@@ -7,19 +7,24 @@ export const BLANK = 0;
 export const GRID_SIZE = 9;
 export const BOX_SIZE = 3;
 
+export type SudokuBoard = number[][];
+
+export interface GameState {
+    initial: SudokuBoard;
+    solution: SudokuBoard;
+    current: SudokuBoard;
+}
+
 /**
  * Checks if a move is valid in the current board state
- * @param {Array<Array<number>>} board 9x9 grid
- * @param {number} row 0-8
- * @param {number} col 0-8
- * @param {number} num 1-9
- * @returns {boolean}
  */
-export function isValidMove(board, row, col, num) {
+export function isValidMove(board: SudokuBoard, row: number, col: number, num: number): boolean {
     // Check row and column
     for (let i = 0; i < GRID_SIZE; i++) {
-        if (board[row][i] === num && i !== col) return false;
-        if (board[i][col] === num && i !== row) return false;
+        const rowVal = board[row];
+        const colVal = board[i];
+        if (rowVal && rowVal[i] === num && i !== col) return false;
+        if (colVal && colVal[col] === num && i !== row) return false;
     }
 
     // Check 3x3 box
@@ -27,8 +32,10 @@ export function isValidMove(board, row, col, num) {
     const startCol = Math.floor(col / BOX_SIZE) * BOX_SIZE;
 
     for (let i = 0; i < BOX_SIZE; i++) {
+        const currentRow = board[startRow + i];
+        if (!currentRow) continue;
         for (let j = 0; j < BOX_SIZE; j++) {
-            if (board[startRow + i][startCol + j] === num) {
+            if (currentRow[startCol + j] === num) {
                 if ((startRow + i) !== row || (startCol + j) !== col) return false;
             }
         }
@@ -39,23 +46,19 @@ export function isValidMove(board, row, col, num) {
 
 /**
  * Solves the Sudoku board using backtracking
- * @param {Array<Array<number>>} board 
- * @returns {boolean} true if solvable
  */
-export function solveSudoku(board) {
+export function solveSudoku(board: SudokuBoard): boolean {
     for (let row = 0; row < GRID_SIZE; row++) {
+        const currentRow = board[row];
+        if (!currentRow) continue;
         for (let col = 0; col < GRID_SIZE; col++) {
-            if (board[row][col] === BLANK) {
-                // Try numbers 1-9
+            if (currentRow[col] === BLANK) {
                 const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-                // Randomize for generation variety if needed, but for strict solver standard order is fine.
-                // For generation we usually shuffle.
-
                 for (let num of nums) {
                     if (isValidMove(board, row, col, num)) {
-                        board[row][col] = num;
+                        currentRow[col] = num;
                         if (solveSudoku(board)) return true;
-                        board[row][col] = BLANK;
+                        currentRow[col] = BLANK;
                     }
                 }
                 return false;
@@ -67,22 +70,22 @@ export function solveSudoku(board) {
 
 /**
  * Generates a filled 9x9 Sudoku board
- * @returns {Array<Array<number>>}
  */
-function generateFullBoard() {
-    const board = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(BLANK));
+function generateFullBoard(): SudokuBoard {
+    const board: SudokuBoard = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(BLANK));
 
-    // Custom solver with randomization for generation
-    function fill(board) {
+    function fill(board: SudokuBoard): boolean {
         for (let row = 0; row < GRID_SIZE; row++) {
+            const currentRow = board[row];
+            if (!currentRow) continue;
             for (let col = 0; col < GRID_SIZE; col++) {
-                if (board[row][col] === BLANK) {
+                if (currentRow[col] === BLANK) {
                     const nums = [1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
                     for (let num of nums) {
                         if (isValidMove(board, row, col, num)) {
-                            board[row][col] = num;
+                            currentRow[col] = num;
                             if (fill(board)) return true;
-                            board[row][col] = BLANK;
+                            currentRow[col] = BLANK;
                         }
                     }
                     return false;
@@ -98,34 +101,26 @@ function generateFullBoard() {
 
 /**
  * Generates a new game board based on difficulty
- * @param {string} difficulty 'easy' | 'medium' | 'hard'
- * @returns {object} { initialBoard, solution }
  */
-export function generateNewGame(difficulty = 'easy') {
+export function generateNewGame(difficulty: string = 'easy'): GameState {
     const solution = generateFullBoard();
-    // Deep copy for the puzzle board
     const puzzle = solution.map(row => [...row]);
-
-    let attempts = difficulty === 'hard' ? 50 : difficulty === 'medium' ? 40 : 30;
-    // This is a naive removal strategy. A better one ensures unique solution, 
-    // but for this task, random removal is usually sufficient for a basic game.
-    // Standard clues: Easy ~36-49, Medium ~32-35, Hard ~28-31
-    // Let's remove cells.
 
     let cellsToRemove = difficulty === 'hard' ? 55 : difficulty === 'medium' ? 45 : 30;
 
     while (cellsToRemove > 0) {
         const row = Math.floor(Math.random() * GRID_SIZE);
         const col = Math.floor(Math.random() * GRID_SIZE);
-        if (puzzle[row][col] !== BLANK) {
-            puzzle[row][col] = BLANK;
+        const currentRow = puzzle[row];
+        if (currentRow && currentRow[col] !== BLANK) {
+            currentRow[col] = BLANK;
             cellsToRemove--;
         }
     }
 
     return {
-        initial: puzzle.map(row => [...row]), // The starting state (immutable)
-        solution: solution, // The answer key
-        current: puzzle.map(row => [...row])  // The state the user interacts with (if needed here, else managed in component)
+        initial: puzzle.map(row => [...row]),
+        solution: solution,
+        current: puzzle.map(row => [...row])
     };
 }
